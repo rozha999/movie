@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Formulario de Película</title>
+</head>
+
+<body>
+
+<h1 th:if="${pelicula.id == null}">
+    Nueva Película
+</h1>
+
+<h1 th:unless="${pelicula.id == null}">
+    Editar Película
+</h1>
+
+<form th:action="@{/peliculas/guardar}"
+      th:object="${pelicula}"
+      method="post">
+
+    <input type="hidden" th:field="*{id}">
+
+    <div>
+        <label for="titulo">Título:</label>
+        <input type="text"
+               id="titulo"
+               th:field="*{titulo}">
+
+        <span th:if="${#fields.hasErrors('titulo')}"
+              th:errors="*{titulo}">
+        </span>
+    </div>
+
+    <br>
+
+    <div>
+        <label for="genero">Género:</label>
+        <input type="text"
+               id="genero"
+               th:field="*{genero}">
+
+        <span th:if="${#fields.hasErrors('genero')}"
+              th:errors="*{genero}">
+        </span>
+    </div>
+
+    <br>
+
+    <div>
+        <label for="anio">Año:</label>
+        <input type="number"
+               id="anio"
+               th:field="*{anio}">
+
+        <span th:if="${#fields.hasErrors('anio')}"
+              th:errors="*{anio}">
+        </span>
+    </div>
+
+    <br>
+
+    <div>
+        <label for="duracion">Duración (minutos):</label>
+        <input type="number"
+               id="duracion"
+               th:field="*{duracion}">
+
+        <span th:if="${#fields.hasErrors('duracion')}"
+              th:errors="*{duracion}">
+        </span>
+    </div>
+
+    <br>
+
+    <div>
+        <label for="puntuacion">Puntuación:</label>
+        <input type="number"
+               id="puntuacion"
+               step="0.1"
+               min="0"
+               max="10"
+               th:field="*{puntuacion}">
+
+        <span th:if="${#fields.hasErrors('puntuacion')}"
+              th:errors="*{puntuacion}">
+        </span>
+    </div>
+
+    <br>
+
+    <button type="submit">
+        Guardar
+    </button>
+
+    <a th:href="@{/peliculas}">
+        Cancelar
+    </a>
+
+</form>
+
+</body>
+</html>

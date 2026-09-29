@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Lista de Películas</title>
+</head>
+
+<body>
+
+<h1>Lista de Películas</h1>
+
+<a th:href="@{/peliculas/nuevo}">
+    Nueva Película
+</a>
+
+<br><br>
+
+<table border="1">
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>Título</th>
+        <th>Género</th>
+        <th>Año</th>
+        <th>Duración</th>
+        <th>Puntuación</th>
+        <th>Acciones</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    <tr th:each="pelicula : ${peliculas}">
+
+        <td th:text="${pelicula.id}"></td>
+
+        <td th:text="${pelicula.titulo}"></td>
+
+        <td th:text="${pelicula.genero}"></td>
+
+        <td th:text="${pelicula.anio}"></td>
+
+        <td th:text="${pelicula.duracion} + ' min'"></td>
+
+        <td th:text="${pelicula.puntuacion}"></td>
+
+        <td>
+            <a th:href="@{/peliculas/editar/{id}(id=${pelicula.id})}">
+                Editar
+            </a>
+
+            |
+
+            <a th:href="@{/peliculas/eliminar/{id}(id=${pelicula.id})}"
+               onclick="return confirm('¿Seguro que quieres eliminar esta película?');">
+                Eliminar
+            </a>
+        </td>
+
+    </tr>
+    </tbody>
+
+</table>
+
+</body>
+</html>
