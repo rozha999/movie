@@ -1,0 +1,14 @@
+spring.application.name=movie
+
+# Puerto de la aplicacion
+server.port=8081
+
+# Conexion JDBC a MySQL (la lee el singleton DatabaseConnection)
+# Copia este archivo como application.properties y completa tus credenciales
+db.url=jdbc:mysql://localhost:3306/movie_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+db.username=root
+db.password=
+
+# Thymeleaf
+spring.thymeleaf.prefix=classpath:/templates/
+spring.thymeleaf.suffix=.html

@@ -1,14 +1,15 @@
 package com.example.movie.repository;
 
+import com.example.movie.config.DatabaseConnection;
 import com.example.movie.model.Pelicula;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.support.GeneratedKeyHolder;
-import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -19,26 +20,48 @@ public class PeliculaRepositoryImpl implements PeliculaRepository {
             "SELECT id, titulo, genero, anio, duracion, puntuacion " +
                     "FROM pelicula";
 
-    private final JdbcTemplate jdbcTemplate;
-
-    public PeliculaRepositoryImpl(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
-    }
+    private final DatabaseConnection db = DatabaseConnection.getInstance();
 
     @Override
     public List<Pelicula> findAll() {
         String sql = SQL_SELECT_BASE + " ORDER BY id";
-        return jdbcTemplate.query(sql, peliculaRowMapper());
+        List<Pelicula> peliculas = new ArrayList<>();
+
+        try (Connection conn = db.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                peliculas.add(mapear(rs));
+            }
+
+        } catch (SQLException e) {
+            throw new IllegalStateException("Error al listar peliculas", e);
+        }
+
+        return peliculas;
     }
 
     @Override
     public Optional<Pelicula> findById(Long id) {
         String sql = SQL_SELECT_BASE + " WHERE id = ?";
 
-        List<Pelicula> resultado =
-                jdbcTemplate.query(sql, peliculaRowMapper(), id);
+        try (Connection conn = db.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
 
-        return resultado.stream().findFirst();
+            ps.setLong(1, id);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return Optional.of(mapear(rs));
+                }
+            }
+
+        } catch (SQLException e) {
+            throw new IllegalStateException("Error al buscar la pelicula " + id, e);
+        }
+
+        return Optional.empty();
     }
 
     @Override
@@ -54,7 +77,16 @@ public class PeliculaRepositoryImpl implements PeliculaRepository {
     @Override
     public void deleteById(Long id) {
         String sql = "DELETE FROM pelicula WHERE id = ?";
-        jdbcTemplate.update(sql, id);
+
+        try (Connection conn = db.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setLong(1, id);
+            ps.executeUpdate();
+
+        } catch (SQLException e) {
+            throw new IllegalStateException("Error al eliminar la pelicula " + id, e);
+        }
     }
 
     private Pelicula insertar(Pelicula pelicula) {
@@ -63,27 +95,25 @@ public class PeliculaRepositoryImpl implements PeliculaRepository {
                 "(titulo, genero, anio, duracion, puntuacion) " +
                 "VALUES (?, ?, ?, ?, ?)";
 
-        KeyHolder keyHolder = new GeneratedKeyHolder();
-
-        jdbcTemplate.update(connection -> {
-
-            PreparedStatement ps =
-                    connection.prepareStatement(
-                            sql,
-                            Statement.RETURN_GENERATED_KEYS
-                    );
+        try (Connection conn = db.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             ps.setString(1, pelicula.getTitulo());
             ps.setString(2, pelicula.getGenero());
             ps.setInt(3, pelicula.getAnio());
             ps.setInt(4, pelicula.getDuracion());
             ps.setBigDecimal(5, pelicula.getPuntuacion());
+            ps.executeUpdate();
 
-            return ps;
+            try (ResultSet keys = ps.getGeneratedKeys()) {
+                if (keys.next()) {
+                    pelicula.setId(keys.getLong(1));
+                }
+            }
 
-        }, keyHolder);
-
-        pelicula.setId(keyHolder.getKey().longValue());
+        } catch (SQLException e) {
+            throw new IllegalStateException("Error al insertar la pelicula", e);
+        }
 
         return pelicula;
     }
@@ -95,35 +125,35 @@ public class PeliculaRepositoryImpl implements PeliculaRepository {
                 "duracion = ?, puntuacion = ? " +
                 "WHERE id = ?";
 
-        jdbcTemplate.update(
-                sql,
-                pelicula.getTitulo(),
-                pelicula.getGenero(),
-                pelicula.getAnio(),
-                pelicula.getDuracion(),
-                pelicula.getPuntuacion(),
-                pelicula.getId()
-        );
+        try (Connection conn = db.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, pelicula.getTitulo());
+            ps.setString(2, pelicula.getGenero());
+            ps.setInt(3, pelicula.getAnio());
+            ps.setInt(4, pelicula.getDuracion());
+            ps.setBigDecimal(5, pelicula.getPuntuacion());
+            ps.setLong(6, pelicula.getId());
+            ps.executeUpdate();
+
+        } catch (SQLException e) {
+            throw new IllegalStateException("Error al actualizar la pelicula", e);
+        }
 
         return pelicula;
     }
 
-    private RowMapper<Pelicula> peliculaRowMapper() {
+    private Pelicula mapear(ResultSet rs) throws SQLException {
 
-        return (rs, rowNum) -> {
+        Pelicula pelicula = new Pelicula();
 
-            Pelicula pelicula = new Pelicula();
+        pelicula.setId(rs.getLong("id"));
+        pelicula.setTitulo(rs.getString("titulo"));
+        pelicula.setGenero(rs.getString("genero"));
+        pelicula.setAnio(rs.getInt("anio"));
+        pelicula.setDuracion(rs.getInt("duracion"));
+        pelicula.setPuntuacion(rs.getBigDecimal("puntuacion"));
 
-            pelicula.setId(rs.getLong("id"));
-            pelicula.setTitulo(rs.getString("titulo"));
-            pelicula.setGenero(rs.getString("genero"));
-            pelicula.setAnio(rs.getInt("anio"));
-            pelicula.setDuracion(rs.getInt("duracion"));
-            pelicula.setPuntuacion(
-                    rs.getBigDecimal("puntuacion")
-            );
-
-            return pelicula;
-        };
+        return pelicula;
     }
 }
